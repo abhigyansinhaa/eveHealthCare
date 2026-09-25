@@ -1,2 +1,29 @@
-*.pdf
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
 .env
+
+# IDE
+.vscode/
+.idea/
+
+# Database
+*.db
+
+# Docker
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Alembic
+alembic/versions/*.pyc
+
+# Assignment PDF
+EVE_SDE_Intern_Hiring_Assignment.pdf
