@@ -6,6 +6,7 @@ pydantic-settings==2.5.2
 
 # Database
 sqlalchemy==2.0.35
+greenlet>=3.0.0
 asyncpg>=0.30.0
 alembic==1.13.2
 

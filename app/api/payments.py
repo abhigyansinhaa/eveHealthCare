@@ -59,13 +59,6 @@ async def create_payment(
             detail="You are not authorized to pay for this booking.",
         )
 
-    # State check
-    if booking.status != BookingStatus.PENDING:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot process payment for a booking with status '{booking.status.value}'. Only PENDING bookings can be paid.",
-        )
-
     # Check for existing payment (prevent duplicates)
     result = await db.execute(
         select(Payment).where(Payment.booking_id == payload.booking_id)
@@ -75,6 +68,13 @@ async def create_payment(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"A payment already exists for this booking (transaction: {existing_payment.transaction_id}).",
+        )
+
+    # State check
+    if booking.status != BookingStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot process payment for a booking with status '{booking.status.value}'. Only PENDING bookings can be paid.",
         )
 
     # Simulate payment outcome: 70% success, 30% failure

@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EVE HealthCare — Diagnostic Portal & Payment Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #070a13;
+      --bg-card: rgba(15, 23, 42, 0.72);
+      --bg-card-hover: rgba(22, 34, 60, 0.85);
+      --bg-input: rgba(11, 19, 36, 0.85);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(6, 182, 212, 0.35);
+      --border-focus: #06b6d4;
+      
+      --primary: #06b6d4;
+      --primary-light: #22d3ee;
+      --primary-glow: rgba(6, 182, 212, 0.25);
+      
+      --accent-indigo: #6366f1;
+      --accent-indigo-glow: rgba(99, 102, 241, 0.25);
+      
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.2);
+      --warning: #f59e0b;
+      --warning-glow: rgba(245, 158, 11, 0.2);
+      --danger: #f43f5e;
+      --danger-glow: rgba(244, 63, 94, 0.2);
+      
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 26px;
+      
+      --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+      --shadow-glow: 0 0 25px var(--primary-glow);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+      background-image: 
+        radial-gradient(circle at 15% 10%, rgba(6, 182, 212, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 50% 85%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    a {
+      color: var(--primary);
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    a:hover {
+      color: var(--primary-light);
+      text-shadow: 0 0 8px var(--primary-glow);
+    }
+
+    code, pre {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Layout Container */
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header & Navigation */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(7, 10, 19, 0.8);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 16px 0;
+      transition: border-color 0.3s ease;
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, #06b6d4 0%, #6366f1 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px rgba(6, 182, 212, 0.4);
+    }
+    .brand-icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: #fff;
+      fill: none;
+      stroke-width: 2.2;
+    }
+
+    .nav-tabs {
+      display: flex;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.8);
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+    }
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.88rem;
+      padding: 8px 18px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s ease;
+    }
+    .nav-btn:hover {
+      color: #fff;
+    }
+    .nav-btn.active {
+      background: linear-gradient(135deg, #06b6d4, #0891b2);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(6, 182, 212, 0.35);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .health-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--success);
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .health-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.15); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Buttons */
+    .btn {
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 9px 18px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid transparent;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3);
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(6, 182, 212, 0.45);
+    }
+    .btn-secondary {
+      background: rgba(30, 41, 59, 0.7);
+      color: #cbd5e1;
+      border: 1px solid var(--border-subtle);
+    }
+    .btn-secondary:hover {
+      background: rgba(51, 65, 85, 0.9);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    .btn-success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    }
+    .btn-success:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+    }
+    .btn-danger {
+      background: rgba(244, 63, 94, 0.15);
+      color: #fb7185;
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+    .btn-danger:hover {
+      background: rgba(244, 63, 94, 0.25);
+      color: #fff;
+    }
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 44px 0 28px;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 32px;
+      align-items: center;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--primary-light);
+      margin-bottom: 14px;
+    }
+    .hero-title {
+      font-size: 2.75rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 680px;
+      line-height: 1.6;
+    }
+    .hero-stats {
+      display: flex;
+      gap: 18px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px 24px;
+      min-width: 140px;
+      backdrop-filter: blur(12px);
+      text-align: center;
+      transition: all 0.25s ease;
+    }
+    .stat-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+    }
+    .stat-value {
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+    .stat-label {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 4px;
+    }
+
+    /* Seed Banner */
+    .seed-banner {
+      background: linear-gradient(90deg, rgba(6, 182, 212, 0.12), rgba(99, 102, 241, 0.12));
+      border: 1px dashed rgba(6, 182, 212, 0.35);
+      border-radius: var(--radius-md);
+      padding: 16px 24px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .seed-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .seed-icon {
+      font-size: 1.5rem;
+    }
+
+    /* Cards & Containers */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow-glass);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card:hover {
+      border-color: var(--border-hover);
+    }
+
+    /* Centres View */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .section-title {
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-desc {
+      color: var(--text-dim);
+      font-size: 0.88rem;
+      margin-top: 2px;
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 8px 16px;
+      width: 320px;
+    }
+    .search-bar input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 0.9rem;
+      width: 100%;
+    }
+    .search-bar svg {
+      stroke: var(--text-dim);
+      width: 18px;
+      height: 18px;
+    }
+
+    .centres-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 24px;
+    }
+
+    .centre-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .centre-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #06b6d4, #6366f1);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .centre-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+    }
+    .centre-card:hover::before {
+      opacity: 1;
+    }
+
+    .centre-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .centre-name {
+      font-size: 1.22rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .centre-loc {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--primary-light);
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+    .centre-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.25);
+    }
+
+    .test-list {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .test-item {
+      background: rgba(11, 19, 36, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+    .test-item:hover {
+      background: rgba(18, 30, 56, 0.8);
+      border-color: rgba(6, 182, 212, 0.25);
+    }
+    .test-info-name {
+      font-weight: 600;
+      font-size: 0.92rem;
+      color: #e2e8f0;
+    }
+    .test-meta {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      display: flex;
+      gap: 12px;
+      margin-top: 2px;
+    }
+    .test-price {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--success);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Bookings View */
+    .bookings-table-wrapper {
+      overflow-x: auto;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+    }
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    table.data-table th {
+      background: rgba(11, 19, 36, 0.85);
+      padding: 14px 18px;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      font-weight: 700;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    table.data-table td {
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+    table.data-table tr:last-child td {
+      border-bottom: none;
+    }
+    table.data-table tr:hover td {
+      background: rgba(22, 34, 60, 0.4);
+    }
+
+    /* Status Pills */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      letter-spacing: 0.03em;
+    }
+    .status-PENDING {
+      background: var(--warning-glow);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .status-CONFIRMED {
+      background: var(--success-glow);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .status-FAILED {
+      background: var(--danger-glow);
+      color: #fb7185;
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+    .status-CANCELLED {
+      background: rgba(148, 163, 184, 0.12);
+      color: #94a3b8;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    /* Webhook & Simulator Lab */
+    .lab-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .form-control {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    .form-control:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+    .code-console {
+      background: #030712;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      color: #38bdf8;
+      overflow-x: auto;
+      max-height: 280px;
+      white-space: pre-wrap;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.78);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-box {
+      background: #0b1324;
+      border: 1px solid var(--border-hover);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7), 0 0 30px rgba(6, 182, 212, 0.15);
+      animation: modalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .modal-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 1.5rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .modal-close:hover {
+      color: #fff;
+    }
+
+    /* Toast notification */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .toast {
+      pointer-events: auto;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px 20px;
+      min-width: 300px;
+      max-width: 440px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: toastSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      font-size: 0.88rem;
+    }
+    .toast.success {
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #ecfdf5;
+    }
+    .toast.error {
+      border-color: rgba(244, 63, 94, 0.4);
+      color: #fff1f2;
+    }
+    .toast.info {
+      border-color: rgba(6, 182, 212, 0.4);
+      color: #f0fdfa;
+    }
+    @keyframes toastSlide {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Tab views */
+    .tab-view {
+      display: none;
+    }
+    .tab-view.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-dim);
+    }
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+      opacity: 0.7;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .lab-grid { grid-template-columns: 1fr; }
+      .centres-grid { grid-template-columns: 1fr; }
+      .nav-tabs { overflow-x: auto; max-width: 100%; }
+      .hero-title { font-size: 2.1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="container header-inner">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+        </div>
+        <span>EVE <span style="color: var(--primary);">HealthCare</span></span>
+      </div>
+
+      <nav class="nav-tabs" id="mainNav">
+        <button class="nav-btn active" onclick="switchTab('centres')">
+          <span>🏥</span> Centres & Tests
+        </button>
+        <button class="nav-btn" onclick="switchTab('bookings')">
+          <span>📅</span> My Bookings
+        </button>
+        <button class="nav-btn" onclick="switchTab('simulator')">
+          <span>⚡</span> Payment & Webhook Lab
+        </button>
+      </nav>
+
+      <div class="header-actions">
+        <div class="health-pill" id="healthPill" title="FastAPI Backend Status">
+          <span class="health-dot"></span>
+          <span>API Connected</span>
+        </div>
+        <div id="authHeaderBlock">
+          <!-- Populated by JS -->
+        </div>
+        <a href="/docs" target="_blank" class="btn btn-secondary btn-sm" title="Open Interactive Swagger OpenAPI Docs">
+          Swagger /docs ↗
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <div class="hero-badge">
+            <span>✨ SDE Backend Assessment & Interactive Console</span>
+          </div>
+          <h1 class="hero-title">Diagnostic Test Booking &amp; Simulated Payments</h1>
+          <p class="hero-subtitle">
+            A production-ready FastAPI platform with JWT authentication, diagnostic centre &amp; test catalog, appointment booking state machine, and an idempotent payment webhook with terminal state protections.
+          </p>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-card">
+            <div class="stat-value" id="statCentres">--</div>
+            <div class="stat-label">Centres</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statTests">--</div>
+            <div class="stat-label">Tests</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statBookings">--</div>
+            <div class="stat-label">My Bookings</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Seed Banner (Visible when DB is empty) -->
+    <div class="seed-banner" id="seedBanner">
+      <div class="seed-info">
+        <div class="seed-icon">🚀</div>
+        <div>
+          <strong style="color: #fff; font-size: 0.98rem;">Looking to test with demo data?</strong>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">
+            Quickly seed sample diagnostic centres (Apollo, Metropolis, Lal Pathlabs) with popular tests &amp; prices.
+          </p>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="seedSampleData()">
+        ✨ Seed Sample Data
+      </button>
+    </div>
+
+    <!-- ──────────────────────────────────────────────
+         TAB 1: Centres & Tests
+    ────────────────────────────────────────────── -->
+    <section id="tab-centres" class="tab-view active">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Diagnostic Centres &amp; Test Catalog</h2>
+          <p class="section-desc">Browse certified medical diagnostic labs, compare test prices, and book instant appointments.</p>
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <div class="search-bar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="centreSearchInput" placeholder="Filter centres or tests..." onkeyup="filterCentres()" />
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="openCreateCentreModal()">
+            + Add Centre
+          </button>
+        </div>
+      </div>
+
+      <div class="centres-grid" id="centresList">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+    <!-- ──────────────────────────────────────────────
+         TAB 2: My Bookings
+    ────────────────────────────────────────────── -->
+    <section id="tab-bookings" class="tab-view">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">My Diagnostic Bookings</h2>
+          <p class="section-desc">Track your scheduled test appointments, process simulated payments, or cancel pending bookings.</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="loadBookings()">
+          🔄 Refresh Bookings
+        </button>
+      </div>
+
+      <div id="bookingsAuthPrompt" style="display: none;" class="card empty-state">
+        <div class="empty-icon">🔒</div>
+        <h3>Authentication Required</h3>
+        <p style="margin: 8px 0 16px;">Please log in to view and manage your test bookings.</p>
+        <button class="btn btn-primary" onclick="openAuthModal('login')">Log In Now</button>
+      </div>
+
+      <div id="bookingsContent" class="bookings-table-wrapper" style="display: none;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Test &amp; Centre</th>
+              <th>Appointment Date</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="bookingsTableBody">
+            <!-- Rendered via JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ──────────────────────────────────────────────
+         TAB 3: Payment & Webhook Playground
+    ────────────────────────────────────────────── -->
+    <section id="tab-simulator" class="tab-view">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Payment &amp; Webhook Simulation Lab</h2>
+          <p class="section-desc">
+            Directly test the 70/30 simulated payment outcomes, duplicate payment constraints, and idempotent webhook replays.
+          </p>
+        </div>
+      </div>
+
+      <div class="lab-grid">
+        <!-- Payment Simulation Card -->
+        <div class="card">
+          <h3 style="font-size: 1.15rem; margin-bottom: 6px; color: #fff;">1. Initiate Simulated Payment</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
+            Endpoint: <code style="color: var(--primary);">POST /payments/</code> (70% SUCCESS / 30% FAILED simulation).
+          </p>
+
+          <div class="form-group">
+            <label class="form-label">Booking ID</label>
+            <input type="number" id="simBookingId" class="form-control" placeholder="e.g. 1" />
+            <small style="color: var(--text-dim); font-size: 0.75rem; margin-top: 4px; display: block;">
+              Select a PENDING booking from "My Bookings" tab or enter an ID.
+            </small>
+          </div>
+
+          <button class="btn btn-primary" style="width: 100%;" onclick="runSimulatedPayment()">
+            💳 Simulate Payment (70/30 Outcome)
+          </button>
+
+          <div style="margin-top: 20px;">
+            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">
+              Response Output
+            </div>
+            <pre class="code-console" id="simPaymentOutput">// Output will appear here after request...</pre>
+          </div>
+        </div>
+
+        <!-- Webhook Simulation Card -->
+        <div class="card">
+          <h3 style="font-size: 1.15rem; margin-bottom: 6px; color: #fff;">2. Test Idempotent Webhook</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
+            Endpoint: <code style="color: var(--accent-indigo);">POST /payments/webhook/</code> (Guaranteed idempotency).
+          </p>
+
+          <div class="form-group">
+            <label class="form-label">Transaction ID</label>
+            <input type="text" id="simTxnId" class="form-control" placeholder="UUID from previous payment (e.g. 3fa85f64...)" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Webhook Status Update</label>
+            <select id="simWebhookStatus" class="form-control">
+              <option value="SUCCESS">SUCCESS</option>
+              <option value="FAILED">FAILED</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-success" style="flex: 1;" onclick="triggerWebhook()">
+              ⚡ Dispatch Webhook
+            </button>
+            <button class="btn btn-secondary" style="flex: 1;" onclick="triggerWebhookReplay()">
+              🔁 Test Replay (Idempotency)
+            </button>
+          </div>
+
+          <div style="margin-top: 20px;">
+            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">
+              Webhook Response &amp; Idempotency Check
+            </div>
+            <pre class="code-console" id="simWebhookOutput">// Output will appear here after dispatching webhook...</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ──────────────────────────────────────────────
+       MODALS
+  ────────────────────────────────────────────── -->
+
+  <!-- Booking Modal -->
+  <div class="modal-overlay" id="bookingModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Book Diagnostic Test</h3>
+        <button class="modal-close" onclick="closeModal('bookingModal')">&times;</button>
+      </div>
+      <div>
+        <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 18px;">
+          Booking for: <strong id="modalTestName" style="color: #fff;">--</strong> at <span id="modalCentreName" style="color: var(--primary);">--</span>
+        </p>
+        
+        <input type="hidden" id="modalCentreId" />
+        <input type="hidden" id="modalTestId" />
+
+        <div class="form-group">
+          <label class="form-label">Appointment Date &amp; Time (Must be in future)</label>
+          <input type="datetime-local" id="modalAppointmentDate" class="form-control" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Price Amount</label>
+          <div style="font-size: 1.4rem; font-weight: 800; color: var(--success); font-family: 'JetBrains Mono', monospace;" id="modalPrice">
+            ₹0.00
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+          <button class="btn btn-secondary" style="flex: 1;" onclick="closeModal('bookingModal')">Cancel</button>
+          <button class="btn btn-primary" style="flex: 1;" onclick="submitBooking()">Confirm Booking</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth Modal (Login / Signup) -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" id="authModalTitle">Sign In</h3>
+        <button class="modal-close" onclick="closeModal('authModal')">&times;</button>
+      </div>
+      <div>
+        <div id="signupNameGroup" class="form-group" style="display: none;">
+          <label class="form-label">Full Name</label>
+          <input type="text" id="authFullName" class="form-control" placeholder="Dr. John Doe" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" id="authEmail" class="form-control" placeholder="user@evehealth.com" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password (min 8 characters)</label>
+          <input type="password" id="authPassword" class="form-control" placeholder="••••••••" />
+        </div>
+
+        <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" id="authSubmitBtn" onclick="submitAuth()">
+          Sign In
+        </button>
+
+        <div style="text-align: center; margin-top: 18px; font-size: 0.85rem; color: var(--text-dim);">
+          <span id="authToggleText">Don't have an account?</span>
+          <a href="javascript:void(0)" onclick="toggleAuthMode()" id="authToggleLink" style="font-weight: 600; margin-left: 4px;">
+            Sign Up
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Centre Modal -->
+  <div class="modal-overlay" id="createCentreModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Add Diagnostic Centre</h3>
+        <button class="modal-close" onclick="closeModal('createCentreModal')">&times;</button>
+      </div>
+      <div>
+        <div class="form-group">
+          <label class="form-label">Centre Name</label>
+          <input type="text" id="newCentreName" class="form-control" placeholder="e.g. Apollo Diagnostics" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Location / City</label>
+          <input type="text" id="newCentreLoc" class="form-control" placeholder="e.g. Koramangala, Bangalore" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contact Number (Optional)</label>
+          <input type="text" id="newCentreContact" class="form-control" placeholder="+91 98765 43210" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address (Optional)</label>
+          <input type="email" id="newCentreEmail" class="form-control" placeholder="contact@centre.com" />
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+          <button class="btn btn-secondary" style="flex: 1;" onclick="closeModal('createCentreModal')">Cancel</button>
+          <button class="btn btn-primary" style="flex: 1;" onclick="submitCreateCentre()">Save Centre</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Test Modal -->
+  <div class="modal-overlay" id="addTestModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Add Diagnostic Test</h3>
+        <button class="modal-close" onclick="closeModal('addTestModal')">&times;</button>
+      </div>
+      <div>
+        <input type="hidden" id="addTestCentreId" />
+        <div class="form-group">
+          <label class="form-label">Test Name</label>
+          <input type="text" id="newTestName" class="form-control" placeholder="e.g. Complete Blood Count (CBC)" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description (Optional)</label>
+          <textarea id="newTestDesc" class="form-control" rows="2" placeholder="Measures red/white cells, hemoglobin..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Price (₹ / $)</label>
+          <input type="number" step="0.01" id="newTestPrice" class="form-control" placeholder="450.00" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Turnaround Time (Hours)</label>
+          <input type="number" id="newTestHours" class="form-control" value="24" />
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+          <button class="btn btn-secondary" style="flex: 1;" onclick="closeModal('addTestModal')">Cancel</button>
+          <button class="btn btn-primary" style="flex: 1;" onclick="submitCreateTest()">Add Test</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Client JavaScript Logic -->
+  <script>
+    // State
+    const API_BASE = "";
+    let state = {
+      token: localStorage.getItem("eve_token") || null,
+      user: JSON.parse(localStorage.getItem("eve_user") || "null"),
+      centres: [],
+      bookings: [],
+      authMode: "login"
+    };
+
+    // Helper: Toast alerts
+    function showToast(message, type = "info") {
+      const container = document.getElementById("toast-container");
+      const toast = document.createElement("div");
+      toast.className = `toast ${type}`;
+      
+      const icons = {
+        success: "✅",
+        error: "❌",
+        info: "ℹ️"
+      };
+      
+      toast.innerHTML = `<span>${icons[type] || "ℹ️"}</span><span>${message}</span>`;
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateX(50px)";
+        toast.style.transition = "all 0.3s ease";
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    // Helper: API Fetcher with Auth
+    async function apiRequest(endpoint, options = {}) {
+      const headers = {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      };
+      if (state.token) {
+        headers["Authorization"] = `Bearer ${state.token}`;
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+          ...options,
+          headers
+        });
+        
+        const data = await response.json().catch(() => ({}));
+        
+        if (!response.ok) {
+          const errMsg = data.detail || (data.errors ? JSON.stringify(data.errors) : "Request failed");
+          throw new Error(typeof errMsg === "string" ? errMsg : JSON.stringify(errMsg));
+        }
+        return data;
+      } catch (err) {
+        throw err;
+      }
+    }
+
+    // Navigation & Tabs
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-view").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".nav-btn").forEach(el => el.classList.remove("active"));
+      
+      const target = document.getElementById(`tab-${tabId}`);
+      if (target) target.classList.add("active");
+      
+      // Update nav button
+      const btns = document.querySelectorAll(".nav-btn");
+      if (tabId === "centres" && btns[0]) btns[0].classList.add("active");
+      if (tabId === "bookings" && btns[1]) btns[1].classList.add("active");
+      if (tabId === "simulator" && btns[2]) btns[2].classList.add("active");
+
+      if (tabId === "bookings") loadBookings();
+    }
+
+    // Update Header Auth Block
+    function updateAuthUI() {
+      const block = document.getElementById("authHeaderBlock");
+      if (state.token && state.user) {
+        block.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.3); padding: 5px 12px; border-radius: 999px; font-size: 0.8rem; color: #a5f3fc; font-weight: 600;">
+              👤 ${state.user.full_name || state.user.email}
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="logout()">Logout</button>
+          </div>
+        `;
+      } else {
+        block.innerHTML = `
+          <button class="btn btn-primary btn-sm" onclick="openAuthModal('login')">
+            Sign In / Sign Up
+          </button>
+        `;
+      }
+    }
+
+    // Auth Modal handling
+    function openAuthModal(mode = "login") {
+      state.authMode = mode;
+      document.getElementById("authModal").classList.add("active");
+      const title = document.getElementById("authModalTitle");
+      const nameGroup = document.getElementById("signupNameGroup");
+      const submitBtn = document.getElementById("authSubmitBtn");
+      const toggleText = document.getElementById("authToggleText");
+      const toggleLink = document.getElementById("authToggleLink");
+
+      if (mode === "login") {
+        title.innerText = "Sign In to EVE HealthCare";
+        nameGroup.style.display = "none";
+        submitBtn.innerText = "Sign In";
+        toggleText.innerText = "Don't have an account?";
+        toggleLink.innerText = "Sign Up";
+      } else {
+        title.innerText = "Create Your Account";
+        nameGroup.style.display = "block";
+        submitBtn.innerText = "Sign Up";
+        toggleText.innerText = "Already registered?";
+        toggleLink.innerText = "Sign In";
+      }
+    }
+
+    function toggleAuthMode() {
+      openAuthModal(state.authMode === "login" ? "signup" : "login");
+    }
+
+    async function submitAuth() {
+      const email = document.getElementById("authEmail").value.trim();
+      const password = document.getElementById("authPassword").value.trim();
+      const fullName = document.getElementById("authFullName").value.trim();
+
+      if (!email || !password) {
+        showToast("Please enter email and password.", "error");
+        return;
+      }
+
+      try {
+        let endpoint = state.authMode === "signup" ? "/auth/signup" : "/auth/login";
+        let body = { email, password };
+        if (state.authMode === "signup") {
+          body.full_name = fullName || "User";
+        }
+
+        const data = await apiRequest(endpoint, {
+          method: "POST",
+          body: JSON.stringify(body)
+        });
+
+        state.token = data.access_token;
+        state.user = data.user;
+        localStorage.setItem("eve_token", data.access_token);
+        localStorage.setItem("eve_user", JSON.stringify(data.user));
+
+        closeModal("authModal");
+        updateAuthUI();
+        showToast(`Welcome ${data.user.full_name}! Authenticated successfully.`, "success");
+        loadBookings();
+      } catch (err) {
+        showToast(err.message, "error");
+      }
+    }
+
+    function logout() {
+      state.token = null;
+      state.user = null;
+      localStorage.removeItem("eve_token");
+      localStorage.removeItem("eve_user");
+      updateAuthUI();
+      showToast("Logged out successfully.", "info");
+      loadBookings();
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove("active");
+    }
+
+    // Load Diagnostic Centres & Tests
+    async function loadCentres() {
+      try {
+        const data = await apiRequest("/centres/?page=1&page_size=50");
+        state.centres = data.items || [];
+        
+        // Update stats
+        document.getElementById("statCentres").innerText = state.centres.length;
+        
+        if (state.centres.length === 0) {
+          document.getElementById("seedBanner").style.display = "flex";
+          document.getElementById("centresList").innerHTML = `
+            <div class="card empty-state" style="grid-column: 1 / -1;">
+              <div class="empty-icon">🏥</div>
+              <h3>No Diagnostic Centres Found</h3>
+              <p style="margin: 8px 0 16px;">The database is currently empty. Click 'Seed Sample Data' above or add a centre manually.</p>
+            </div>
+          `;
+          document.getElementById("statTests").innerText = "0";
+          return;
+        }
+
+        document.getElementById("seedBanner").style.display = "none";
+        
+        // Fetch detailed tests for each centre
+        let totalTests = 0;
+        const detailedCentres = await Promise.all(
+          state.centres.map(async c => {
+            try {
+              const full = await apiRequest(`/centres/${c.id}`);
+              totalTests += (full.tests ? full.tests.length : 0);
+              return full;
+            } catch (e) {
+              return c;
+            }
+          })
+        );
+        state.centres = detailedCentres;
+        document.getElementById("statTests").innerText = totalTests;
+
+        renderCentres(state.centres);
+      } catch (err) {
+        showToast(`Failed to load centres: ${err.message}`, "error");
+      }
+    }
+
+    function renderCentres(centresToRender) {
+      const container = document.getElementById("centresList");
+      if (centresToRender.length === 0) {
+        container.innerHTML = `
+          <div class="card empty-state" style="grid-column: 1 / -1;">
+            <h3>No matching centres found</h3>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = centresToRender.map(c => {
+        const tests = c.tests || [];
+        return `
+          <div class="centre-card">
+            <div>
+              <div class="centre-top">
+                <div>
+                  <h3 class="centre-name">${c.name}</h3>
+                  <div class="centre-loc">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <span>${c.location}</span>
+                  </div>
+                </div>
+                <span class="centre-badge">${tests.length} Tests</span>
+              </div>
+
+              ${c.contact_number ? `<div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;">📞 ${c.contact_number}</div>` : ''}
+
+              <div class="test-list">
+                ${tests.length === 0 ? `
+                  <div style="font-size: 0.82rem; color: var(--text-dim); font-style: italic; padding: 8px 0;">
+                    No tests registered for this centre yet.
+                  </div>
+                ` : tests.map(t => `
+                  <div class="test-item">
+                    <div style="flex: 1; padding-right: 12px;">
+                      <div class="test-info-name">${t.name}</div>
+                      <div class="test-meta">
+                        ${t.turnaround_hours ? `<span>⏱ ${t.turnaround_hours}h report</span>` : ''}
+                        ${t.description ? `<span>${t.description.substring(0, 45)}...</span>` : ''}
+                      </div>
+                    </div>
+                    <div style="text-align: right;">
+                      <div class="test-price">₹${parseFloat(t.price).toFixed(2)}</div>
+                      <button class="btn btn-primary btn-sm" style="margin-top: 6px;" onclick="openBookingModal(${c.id}, '${escapeHtml(c.name)}', ${t.id}, '${escapeHtml(t.name)}', ${t.price})">
+                        Book
+                      </button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.05); display: flex; justify-content: flex-end;">
+              <button class="btn btn-secondary btn-sm" onclick="openAddTestModal(${c.id}, '${escapeHtml(c.name)}')">
+                + Add Test
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterCentres() {
+      const q = document.getElementById("centreSearchInput").value.toLowerCase();
+      const filtered = state.centres.filter(c => {
+        const matchCentre = c.name.toLowerCase().includes(q) || c.location.toLowerCase().includes(q);
+        const matchTest = (c.tests || []).some(t => t.name.toLowerCase().includes(q));
+        return matchCentre || matchTest;
+      });
+      renderCentres(filtered);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    // Modal: Book Test
+    function openBookingModal(centreId, centreName, testId, testName, price) {
+      if (!state.token) {
+        showToast("Please sign in first to book an appointment.", "info");
+        openAuthModal("login");
+        return;
+      }
+
+      document.getElementById("modalCentreId").value = centreId;
+      document.getElementById("modalCentreName").innerText = centreName;
+      document.getElementById("modalTestId").value = testId;
+      document.getElementById("modalTestName").innerText = testName;
+      document.getElementById("modalPrice").innerText = `₹${parseFloat(price).toFixed(2)}`;
+
+      // Set default date to tomorrow 10:00 AM
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+      const isoLocal = new Date(tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      document.getElementById("modalAppointmentDate").value = isoLocal;
+
+      document.getElementById("bookingModal").classList.add("active");
+    }
+
+    async function submitBooking() {
+      const centreId = parseInt(document.getElementById("modalCentreId").value);
+      const testId = parseInt(document.getElementById("modalTestId").value);
+      const dateVal = document.getElementById("modalAppointmentDate").value;
+
+      if (!dateVal) {
+        showToast("Please pick an appointment date & time.", "error");
+        return;
+      }
+
+      const isoDate = new Date(dateVal).toISOString();
+
+      try {
+        const booking = await apiRequest("/bookings/", {
+          method: "POST",
+          body: JSON.stringify({
+            centre_id: centreId,
+            test_id: testId,
+            appointment_date: isoDate
+          })
+        });
+
+        closeModal("bookingModal");
+        showToast(`Booking #${booking.id} created successfully! (Status: ${booking.status})`, "success");
+        switchTab("bookings");
+      } catch (err) {
+        showToast(`Booking failed: ${err.message}`, "error");
+      }
+    }
+
+    // Load Bookings
+    async function loadBookings() {
+      const authPrompt = document.getElementById("bookingsAuthPrompt");
+      const content = document.getElementById("bookingsContent");
+      const tbody = document.getElementById("bookingsTableBody");
+
+      if (!state.token) {
+        authPrompt.style.display = "block";
+        content.style.display = "none";
+        document.getElementById("statBookings").innerText = "--";
+        return;
+      }
+
+      authPrompt.style.display = "none";
+      content.style.display = "block";
+
+      try {
+        const data = await apiRequest("/bookings/?page=1&page_size=50");
+        state.bookings = data.items || [];
+        document.getElementById("statBookings").innerText = state.bookings.length;
+
+        if (state.bookings.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-dim);">
+                No bookings yet. Explore the "Centres & Tests" tab to schedule your first appointment!
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = state.bookings.map(b => {
+          const formattedDate = new Date(b.appointment_date).toLocaleString();
+          return `
+            <tr>
+              <td><code style="color: var(--primary);">#${b.id}</code></td>
+              <td>
+                <div style="font-weight: 600; color: #fff;">${b.test_name || `Test #${b.test_id}`}</div>
+                <div style="font-size: 0.78rem; color: var(--text-dim);">${b.centre_name || `Centre #${b.centre_id}`}</div>
+              </td>
+              <td style="font-size: 0.85rem;">${formattedDate}</td>
+              <td style="font-family: 'JetBrains Mono'; font-weight: 700; color: #fff;">₹${parseFloat(b.amount).toFixed(2)}</td>
+              <td>
+                <span class="status-pill status-${b.status}">
+                  ● ${b.status}
+                </span>
+              </td>
+              <td>
+                <div style="display: flex; gap: 8px;">
+                  ${b.status === 'PENDING' ? `
+                    <button class="btn btn-success btn-sm" onclick="quickPayBooking(${b.id})">
+                      💳 Pay Now
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="cancelBooking(${b.id})">
+                      Cancel
+                    </button>
+                  ` : `
+                    <button class="btn btn-secondary btn-sm" onclick="inspectBooking(${b.id})">
+                      Details
+                    </button>
+                  `}
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        showToast(`Failed to load bookings: ${err.message}`, "error");
+      }
+    }
+
+    async function quickPayBooking(bookingId) {
+      document.getElementById("simBookingId").value = bookingId;
+      switchTab("simulator");
+      showToast(`Selected Booking #${bookingId} for simulated payment.`, "info");
+      runSimulatedPayment();
+    }
+
+    async function cancelBooking(bookingId) {
+      if (!confirm(`Are you sure you want to cancel Booking #${bookingId}?`)) return;
+
+      try {
+        const res = await apiRequest(`/bookings/${bookingId}/cancel`, {
+          method: "POST"
+        });
+        showToast(`Booking #${bookingId} has been CANCELLED.`, "info");
+        loadBookings();
+      } catch (err) {
+        showToast(err.message, "error");
+      }
+    }
+
+    function inspectBooking(bookingId) {
+      const b = state.bookings.find(item => item.id === bookingId);
+      if (b) {
+        alert(`Booking #${b.id}\nTest: ${b.test_name}\nCentre: ${b.centre_name}\nStatus: ${b.status}\nAmount: ₹${b.amount}\nAppointment: ${b.appointment_date}`);
+      }
+    }
+
+    // Modal: Add Centre
+    function openCreateCentreModal() {
+      if (!state.token) {
+        showToast("Please sign in first to add a diagnostic centre.", "info");
+        openAuthModal("login");
+        return;
+      }
+      document.getElementById("createCentreModal").classList.add("active");
+    }
+
+    async function submitCreateCentre() {
+      const name = document.getElementById("newCentreName").value.trim();
+      const location = document.getElementById("newCentreLoc").value.trim();
+      const contact_number = document.getElementById("newCentreContact").value.trim();
+      const email = document.getElementById("newCentreEmail").value.trim();
+
+      if (!name || !location) {
+        showToast("Please enter Centre Name and Location.", "error");
+        return;
+      }
+
+      try {
+        const newCentre = await apiRequest("/centres/", {
+          method: "POST",
+          body: JSON.stringify({ name, location, contact_number, email })
+        });
+
+        closeModal("createCentreModal");
+        showToast(`Centre "${newCentre.name}" added successfully!`, "success");
+        loadCentres();
+      } catch (err) {
+        showToast(err.message, "error");
+      }
+    }
+
+    // Modal: Add Test
+    function openAddTestModal(centreId, centreName) {
+      if (!state.token) {
+        showToast("Please sign in first to add tests.", "info");
+        openAuthModal("login");
+        return;
+      }
+      document.getElementById("addTestCentreId").value = centreId;
+      document.getElementById("addTestModal").classList.add("active");
+    }
+
+    async function submitCreateTest() {
+      const centreId = parseInt(document.getElementById("addTestCentreId").value);
+      const name = document.getElementById("newTestName").value.trim();
+      const description = document.getElementById("newTestDesc").value.trim();
+      const price = parseFloat(document.getElementById("newTestPrice").value);
+      const turnaround_hours = parseInt(document.getElementById("newTestHours").value) || 24;
+
+      if (!name || isNaN(price) || price <= 0) {
+        showToast("Please enter valid Test Name and Price.", "error");
+        return;
+      }
+
+      try {
+        const test = await apiRequest(`/centres/${centreId}/tests`, {
+          method: "POST",
+          body: JSON.stringify({ name, description, price, turnaround_hours })
+        });
+
+        closeModal("addTestModal");
+        showToast(`Test "${test.name}" added successfully!`, "success");
+        loadCentres();
+      } catch (err) {
+        showToast(err.message, "error");
+      }
+    }
+
+    // Payment Simulator
+    async function runSimulatedPayment() {
+      const bookingId = parseInt(document.getElementById("simBookingId").value);
+      const out = document.getElementById("simPaymentOutput");
+
+      if (!bookingId) {
+        showToast("Please enter a valid Booking ID.", "error");
+        return;
+      }
+
+      if (!state.token) {
+        showToast("Please sign in first to process payment.", "info");
+        openAuthModal("login");
+        return;
+      }
+
+      out.innerText = `⏳ Submitting POST /payments/ for Booking #${bookingId}...`;
+
+      try {
+        const payment = await apiRequest("/payments/", {
+          method: "POST",
+          body: JSON.stringify({ booking_id: bookingId })
+        });
+
+        out.innerText = JSON.stringify(payment, null, 2);
+
+        // Pre-fill transaction id into webhook tester
+        document.getElementById("simTxnId").value = payment.transaction_id;
+
+        if (payment.status === "SUCCESS") {
+          showToast(`🎉 Payment SUCCESS! Booking #${bookingId} is CONFIRMED.`, "success");
+        } else {
+          showToast(`⚠️ Payment FAILED! Booking #${bookingId} marked as FAILED.`, "error");
+        }
+
+        loadBookings();
+      } catch (err) {
+        out.innerText = `Error: ${err.message}`;
+        showToast(err.message, "error");
+      }
+    }
+
+    // Webhook Simulator
+    async function triggerWebhook() {
+      const txnId = document.getElementById("simTxnId").value.trim();
+      const status = document.getElementById("simWebhookStatus").value;
+      const out = document.getElementById("simWebhookOutput");
+
+      if (!txnId) {
+        showToast("Please provide a valid Transaction ID.", "error");
+        return;
+      }
+
+      out.innerText = `⏳ Dispatching POST /payments/webhook/ with transaction_id=${txnId}, status=${status}...`;
+
+      try {
+        const res = await apiRequest("/payments/webhook/", {
+          method: "POST",
+          body: JSON.stringify({ transaction_id: txnId, status: status })
+        });
+
+        out.innerText = `HTTP 200 OK\n` + JSON.stringify(res, null, 2);
+        showToast(`Webhook received: ${res.message}`, "success");
+        loadBookings();
+      } catch (err) {
+        out.innerText = `Error: ${err.message}`;
+        showToast(err.message, "error");
+      }
+    }
+
+    async function triggerWebhookReplay() {
+      showToast("🔁 Replaying identical webhook to verify idempotency...", "info");
+      await triggerWebhook();
+    }
+
+    // Seed Sample Data (Apollo, Metropolis, Lal Pathlabs)
+    async function seedSampleData() {
+      showToast("🌱 Seeding sample diagnostic data...", "info");
+
+      // Auto login or signup admin demo user
+      try {
+        let authData;
+        try {
+          authData = await apiRequest("/auth/login", {
+            method: "POST",
+            body: JSON.stringify({ email: "admin@evehealth.com", password: "Password123!" })
+          });
+        } catch (e) {
+          authData = await apiRequest("/auth/signup", {
+            method: "POST",
+            body: JSON.stringify({
+              email: "admin@evehealth.com",
+              password: "Password123!",
+              full_name: "EVE Demo Administrator"
+            })
+          });
+        }
+
+        state.token = authData.access_token;
+        state.user = authData.user;
+        localStorage.setItem("eve_token", authData.access_token);
+        localStorage.setItem("eve_user", JSON.stringify(authData.user));
+        updateAuthUI();
+
+        // 1. Apollo Diagnostics
+        const apollo = await apiRequest("/centres/", {
+          method: "POST",
+          body: JSON.stringify({
+            name: "Apollo Diagnostics Centre",
+            location: "Indiranagar, Bangalore",
+            contact_number: "+91 80 2525 1111",
+            email: "support@apollo.com"
+          })
+        });
+
+        await apiRequest(`/centres/${apollo.id}/tests`, {
+          method: "POST",
+          body: JSON.stringify({
+            name: "Comprehensive Metabolic Panel (CMP)",
+            description: "14 essential blood tests evaluating liver, kidneys, and electrolytes.",
+            price: 1250.00,
+            turnaround_hours: 24
+          })
+        });
+
+        await apiRequest(`/centres/${apollo.id}/tests`, {
+          method: "POST",
+          body: JSON.stringify({
+            name: "Lipid Profile & Cardiac Risk Panel",
+            description: "Total Cholesterol, HDL, LDL, VLDL, and Triglycerides.",
+            price: 850.00,
+            turnaround_hours: 12
+          })
+        });
+
+        // 2. Metropolis Healthcare
+        const metropolis = await apiRequest("/centres/", {
+          method: "POST",
+          body: JSON.stringify({
+            name: "Metropolis Healthcare Labs",
+            location: "Bandra West, Mumbai",
+            contact_number: "+91 22 6161 2222",
+            email: "contact@metropolis.com"
+          })
+        });
+
+        await apiRequest(`/centres/${metropolis.id}/tests`, {
+          method: "POST",
+          body: JSON.stringify({
+            name: "Complete Blood Count (CBC) with ESR",
+            description: "Hemoglobin, RBC, WBC differential, platelets, and infection markers.",
+            price: 450.00,
+            turnaround_hours: 8
+          })
+        });
+
+        await apiRequest(`/centres/${metropolis.id}/tests`, {
+          method: "POST",
+          body: JSON.stringify({
+            name: "HbA1c Glycated Hemoglobin",
+            description: "Gold standard test monitoring 3-month average blood glucose.",
+            price: 650.00,
+            turnaround_hours: 12
+          })
+        });
+
+        await apiRequest(`/centres/${metropolis.id}/tests`, {
+          method: "POST",
+          body: JSON.stringify({
+            name: "Vitamin D3 (25-OH) & B12 Vitality Duo",
+            description: "Evaluates bone density, energy metabolism, and neurological wellness.",
+            price: 1550.00,
+            turnaround_hours: 24
+          })
+        });
+
+        // 3. Dr. Lal Pathlabs
+        const lal = await apiRequest("/centres/", {
+          method: "POST",
+          body: JSON.stringify({
+            name: "Dr. Lal Pathlabs Central",
+            location: "Connaught Place, New Delhi",
+            contact_number: "+91 11 3988 5050",
+            email: "delhi@lalpathlabs.com"
+          })
+        });
+
+        await apiRequest(`/centres/${lal.id}/tests`, {
+          method: "POST",
+          body: JSON.stringify({
+            name: "Thyroid Profile Total (T3, T4, TSH)",
+            description: "Complete screening for hyper/hypo-thyroidism and metabolic rate.",
+            price: 550.00,
+            turnaround_hours: 12
+          })
+        });
+
+        await apiRequest(`/centres/${lal.id}/tests`, {
+          method: "POST",
+          body: JSON.stringify({
+            name: "Full Body Master Health Checkup",
+            description: "85 parameters including LFT, KFT, CBC, Lipid, Urine routine, and Vitamins.",
+            price: 2499.00,
+            turnaround_hours: 36
+          })
+        });
+
+        showToast("✨ Sample data seeded successfully! 3 centres with 7 tests loaded.", "success");
+        await loadCentres();
+
+      } catch (err) {
+        showToast(`Seeding failed: ${err.message}`, "error");
+      }
+    }
+
+    // Health check ping
+    async function checkHealth() {
+      try {
+        const res = await fetch(`${API_BASE}/health`);
+        const data = await res.json();
+        if (data.status === "healthy") {
+          document.getElementById("healthPill").style.display = "flex";
+        }
+      } catch (e) {
+        const pill = document.getElementById("healthPill");
+        pill.innerHTML = `<span style="background: var(--danger); width: 8px; height: 8px; border-radius: 50%;"></span><span style="color: var(--danger);">API Offline</span>`;
+      }
+    }
+
+    // Init
+    window.addEventListener("DOMContentLoaded", () => {
+      updateAuthUI();
+      checkHealth();
+      loadCentres();
+    });
+  </script>
+</body>
+</html>

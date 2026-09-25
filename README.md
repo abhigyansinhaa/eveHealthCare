@@ -25,6 +25,7 @@ A backend service for diagnostic test bookings with simulated payments, built wi
 
 | Feature | Status |
 |---------|--------|
+| Interactive Web Dashboard (SPA) | ✅ |
 | JWT Authentication (signup/login) | ✅ |
 | Diagnostic Centres & Tests CRUD | ✅ |
 | Booking System with state management | ✅ |
@@ -33,7 +34,7 @@ A backend service for diagnostic test bookings with simulated payments, built wi
 | Edge Case Handling | ✅ |
 | Swagger/OpenAPI Documentation | ✅ |
 | Docker & docker-compose | ✅ |
-| Unit & Integration Tests | ✅ |
+| Unit & Integration Tests (37 tests) | ✅ |
 | Pagination | ✅ |
 
 ---
@@ -104,9 +105,10 @@ cd eveHealthCare
 # Start both PostgreSQL and the API
 docker-compose up --build
 
-# The API is now running at http://localhost:8000
-# Swagger UI: http://localhost:8000/docs
-# ReDoc: http://localhost:8000/redoc
+# Key URLs:
+# Web Dashboard: http://localhost:8000/
+# Swagger UI:    http://localhost:8000/docs
+# ReDoc:         http://localhost:8000/redoc
 ```
 
 ### Local Setup
