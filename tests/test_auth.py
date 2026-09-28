@@ -97,3 +97,25 @@ class TestLogin:
             "password": "StrongPass123",
         })
         assert response.status_code == 401
+
+    async def test_form_token_endpoint(self, client: AsyncClient):
+        """Test form-based OAuth2 token endpoint used by Swagger UI Authorize button."""
+        await client.post("/auth/signup", json={
+            "email": "formuser@example.com",
+            "full_name": "Form User",
+            "password": "StrongPass123",
+        })
+        # Send form-encoded data
+        response = await client.post(
+            "/auth/token",
+            data={
+                "username": "formuser@example.com",
+                "password": "StrongPass123",
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+        assert data["user"]["email"] == "formuser@example.com"
+

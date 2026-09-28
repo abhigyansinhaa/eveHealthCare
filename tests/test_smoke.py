@@ -3,6 +3,9 @@ Smoke tests for EVE Healthcare backend service.
 Validates service health, OpenAPI specification, interactive docs, and end-to-end user flows.
 """
 
+import hashlib
+import hmac
+import json
 from datetime import datetime, timezone, timedelta
 import pytest
 from httpx import AsyncClient
@@ -50,12 +53,14 @@ class TestBackendSmoke:
         assert redoc_res.status_code == 200
         assert "redoc" in redoc_res.text.lower() or "html" in redoc_res.headers["content-type"]
 
-    async def test_e2e_booking_payment_lifecycle_smoke(self, client: AsyncClient):
+    async def test_e2e_booking_payment_lifecycle_smoke(self, client: AsyncClient, monkeypatch):
         """
         Comprehensive smoke test:
         Signup -> Login -> Create Centre -> Add Test -> Create Booking ->
         Initiate Payment -> Trigger Webhook -> Confirm Booking & Payment.
         """
+        monkeypatch.setattr("app.api.payments.random.random", lambda: 0.1)
+
         # 1. User Signup
         signup_res = await client.post("/auth/signup", json={
             "email": "smoke_tester@evehealth.com",
@@ -120,14 +125,21 @@ class TestBackendSmoke:
         # 7. Check Booking State matches simulated payment
         booking_check = await client.get(f"/bookings/{booking_id}", headers=auth_headers)
         assert booking_check.status_code == 200
-        expected_booking_status = "CONFIRMED" if payment_data["status"] == "SUCCESS" else "CANCELLED"
+        expected_booking_status = "CONFIRMED" if payment_data["status"] == "SUCCESS" else "FAILED"
         assert booking_check.json()["status"] == expected_booking_status
 
-        # 8. Webhook Processing & Idempotency
-        webhook_res = await client.post("/payments/webhook/", json={
+        # 8. Webhook Processing & Idempotency (with HMAC signature)
+        webhook_payload = {
             "transaction_id": txn_id,
             "status": payment_data["status"],
-        })
+        }
+        raw_body = json.dumps(webhook_payload).encode("utf-8")
+        sig = hmac.new(settings.WEBHOOK_SECRET.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
+        webhook_res = await client.post(
+            "/payments/webhook/",
+            content=raw_body,
+            headers={"X-Signature": sig, "Content-Type": "application/json"},
+        )
         assert webhook_res.status_code == 200
         webhook_data = webhook_res.json()
         assert webhook_data["transaction_id"] == txn_id

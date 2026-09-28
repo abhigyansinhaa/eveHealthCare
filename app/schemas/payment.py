@@ -4,6 +4,8 @@ Pydantic schemas for Payment and Webhook endpoints.
 
 from datetime import datetime
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 from app.models.payment import PaymentStatus
@@ -33,8 +35,8 @@ class WebhookPayload(BaseModel):
     with the same transaction_id will not corrupt state.
     """
     transaction_id: str = Field(..., min_length=1, max_length=36)
-    status: PaymentStatus = Field(
-        ..., description="Payment outcome: SUCCESS or FAILED"
+    status: Literal["SUCCESS", "FAILED"] = Field(
+        ..., description="Payment outcome: SUCCESS or FAILED (PENDING is invalid for webhook)"
     )
 
 

@@ -3,6 +3,7 @@ Authentication routes — signup and login.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -90,3 +91,15 @@ async def login(payload: UserLoginRequest, db: AsyncSession = Depends(get_db)):
         access_token=token,
         user=UserResponse.model_validate(user),
     )
+
+
+@router.post("/token", include_in_schema=False)
+async def token(
+    form: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Form-based authentication endpoint for OpenAPI/Swagger UI 'Authorize' button.
+    Accepts application/x-www-form-urlencoded username & password.
+    """
+    return await login(UserLoginRequest(email=form.username, password=form.password), db)

@@ -34,8 +34,10 @@ A backend service for diagnostic test bookings with simulated payments, built wi
 | Edge Case Handling | ✅ |
 | Swagger/OpenAPI Documentation | ✅ |
 | Docker & docker-compose | ✅ |
-| Unit & Integration Tests (37 tests) | ✅ |
+| Unit & Integration Tests (52 tests) | ✅ |
 | Pagination | ✅ |
+| Row-Level Locking & Concurrency Protection | ✅ |
+| HMAC-SHA256 Webhook Verification | ✅ |
 
 ---
 
@@ -76,13 +78,18 @@ eveHealthCare/
 │   │   ├── booking.py
 │   │   ├── payment.py
 │   │   └── common.py           # PaginatedResponse generic
-│   └── main.py                 # FastAPI app entry point
+│   ├── static/                 # Interactive Web Dashboard
+│   │   └── index.html
+│   └── main.py                 # FastAPI app entry point (with X-Request-ID middleware)
 ├── tests/
 │   ├── conftest.py             # Fixtures (SQLite-backed)
-│   ├── test_auth.py
-│   ├── test_diagnostics.py
-│   ├── test_bookings.py
-│   └── test_payments.py
+│   ├── test_auth.py            # Auth & /auth/token form endpoint tests
+│   ├── test_diagnostics.py     # Centres & Tests CRUD
+│   ├── test_bookings.py        # Booking state machine tests
+│   ├── test_payments.py        # Simulated payment, concurrency & webhook tests
+│   ├── test_frontend.py        # Frontend route & lint tests
+│   ├── test_smoke.py           # E2E & system smoke tests
+│   └── lint_frontend.js        # Standalone JS/HTML linter
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
@@ -295,30 +302,39 @@ curl -X POST http://localhost:8000/payments/ \
 ```
 
 ### 7. Webhook (Simulated Payment Provider)
+
+The webhook endpoint requires an `X-Signature` header computed as an HMAC-SHA256 hex digest of the raw JSON body using `WEBHOOK_SECRET`:
+
 ```bash
+PAYLOAD='{"transaction_id": "<TRANSACTION_ID>", "status": "SUCCESS"}'
+SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "eve-diagnostic-simulated-webhook-secret-key" | sed 's/^.* //')
+
 curl -X POST http://localhost:8000/payments/webhook/ \
   -H "Content-Type: application/json" \
-  -d '{
-    "transaction_id": "<TRANSACTION_ID>",
-    "status": "SUCCESS"
-  }'
+  -H "X-Signature: $SIGNATURE" \
+  -d "$PAYLOAD"
 ```
 
 ---
 
 ## Running Tests
 
-Tests use an in-memory SQLite database — no PostgreSQL needed.
+Tests use an in-memory SQLite database — zero external dependencies needed.
 
 ```bash
 # Install test dependencies (included in requirements.txt)
 pip install -r requirements.txt
 
-# Run all tests
+# Run all 52 tests (Unit, Integration, Smoke, and Frontend lint tests)
 pytest -v
 
-# Run specific test file
-pytest tests/test_auth.py -v
+# Run frontend lint check standalone
+node tests/lint_frontend.js
+
+# Run specific test suites
+pytest tests/test_payments.py -v
+pytest tests/test_smoke.py -v
+pytest tests/test_frontend.py -v
 
 # Run with coverage (if pytest-cov is installed)
 pytest --cov=app --cov-report=term-missing
@@ -328,23 +344,41 @@ pytest --cov=app --cov-report=term-missing
 
 ## Design Decisions & Assumptions
 
-1. **Booking amount is derived from test price** at creation time, not user-supplied. This prevents price manipulation.
+1. **Booking amount snapshot**: The booking amount is derived from the diagnostic test price at creation time, preventing client-side price manipulation.
 
-2. **Webhook is unauthenticated** — real payment webhooks are server-to-server calls authenticated via signatures. We keep the endpoint open for simplicity but note this in the docs.
+2. **Row-level locking (`with_for_update`)**:
+   - `create_payment` acquires a pessimistic row lock on `Booking` (`SELECT ... FOR UPDATE`) to serialize concurrent payment requests.
+   - `payment_webhook` acquires row locks on both `Payment` and `Booking` to serialize incoming webhook events and prevent race conditions.
 
-3. **One payment per booking** — enforced at the database level with a UNIQUE constraint on `payments.booking_id`. Prevents duplicate payments even under race conditions.
+3. **Concurrent payment protection (409 Conflict)**:
+   - Enforced at the database level with a `UNIQUE` constraint on `payments.booking_id`.
+   - Simultaneous concurrent payment requests for the same booking are trapped via `IntegrityError` and mapped to `409 Conflict` (e.g. 5 concurrent requests yield 1x `201 Created` and 4x `409 Conflict`).
 
-4. **Idempotent webhook** — replaying the same webhook event:
-   - Same status → returns success without changes
-   - Terminal state (SUCCESS/FAILED) → cannot be overridden
+4. **Failed payments are terminal**:
+   - When a payment outcome is `FAILED`, the associated booking transitions to `FAILED`.
+   - A failed booking cannot be directly re-paid; the user must create a new booking. This guarantees clear audit trails and prevents financial state corruption.
 
-5. **Booking state machine**: Only PENDING bookings can be cancelled or paid. Once CONFIRMED/FAILED/CANCELLED, the state is terminal.
+5. **Webhook idempotency & reconciliation**:
+   - The webhook is the reconciliation path for late or out-of-order payment provider events.
+   - Terminal payment states (`SUCCESS` and `FAILED`) are immutable and cannot be overwritten.
+   - Replaying the same webhook status returns success (`200 OK`) with an idempotent confirmation without mutating the database.
 
-6. **Test-centre validation**: A booking verifies that the test actually belongs to the specified centre, preventing mismatched bookings.
+6. **Restricted Webhook Status**:
+   - `WebhookPayload.status` strictly accepts `SUCCESS` or `FAILED`. Passing `PENDING` is rejected with `422 Unprocessable Entity`.
 
-7. **Tests use SQLite** for speed and zero-dependency CI. The async ORM layer ensures compatibility.
+7. **HMAC-SHA256 Webhook Verification**:
+   - Webhooks are authenticated via the `X-Signature` header calculated from the raw request body and `WEBHOOK_SECRET` using `hmac.compare_digest`.
+   - Calls with missing or invalid signatures return `401 Unauthorized`.
 
-8. **Auto-create tables on startup** via the lifespan handler. In production, this would be replaced with Alembic migrations.
+8. **OpenAPI / Swagger Authorize Support**:
+   - Provides a dedicated form endpoint `POST /auth/token` with `OAuth2PasswordRequestForm` so the Swagger UI "Authorize" modal works interactively out of the box.
+
+9. **Observability & Request Correlation**:
+   - Middleware attaches `X-Request-ID` and `X-Process-Time-Ms` headers to every response and outputs structured latency logs.
+
+10. **Test-centre validation**: A booking verifies that the test actually belongs to the specified centre, preventing mismatched bookings.
+
+11. **Isolated SQLite testing**: Tests run against an isolated SQLite instance with table teardown per test for fast, deterministic CI execution.
 
 ---
 
@@ -352,13 +386,12 @@ pytest --cov=app --cov-report=term-missing
 
 Given more time, I would add:
 
-- **Alembic migrations** — version-controlled schema changes instead of auto-create
-- **Redis caching** — cache centre/test listings with TTL-based invalidation
-- **Celery background jobs** — async payment processing, email notifications
-- **Rate limiting** — protect auth endpoints from brute-force attacks
-- **Webhook signature verification** — HMAC-based authentication for webhooks
-- **Role-based access control** — admin vs. patient roles for centre/test management
-- **Structured logging** — JSON logging with correlation IDs for tracing
-- **CI/CD pipeline** — GitHub Actions for lint, test, build, deploy
-- **Soft deletes** — archive bookings/payments instead of hard deletes
-- **Appointment slot management** — prevent double-booking of time slots
+- **Alembic migrations** — version-controlled schema migrations instead of startup auto-create
+- **Redis caching** — cache centre/test listings with TTL-based cache invalidation
+- **Celery background jobs** — async notification delivery and external webhook dispatch
+- **Rate limiting** — protect auth endpoints against brute-force attacks via token bucket
+- **Role-based access control (RBAC)** — distinct admin vs. patient permissions for centre/test management
+- **CI/CD pipeline** — GitHub Actions workflow for linting, testing, and Docker builds
+- **Soft deletes** — soft archive bookings/payments instead of hard deletes
+- **Appointment slot management** — prevent double-booking of specific time slots
+

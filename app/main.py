@@ -6,7 +6,10 @@ Diagnostic Test Booking & Simulated Payment Service
 
 from contextlib import asynccontextmanager
 
+import logging
 from pathlib import Path
+import time
+import uuid
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -20,6 +23,12 @@ STATIC_DIR = Path(__file__).parent / "static"
 INDEX_HTML = STATIC_DIR / "index.html"
 
 settings = get_settings()
+
+logger = logging.getLogger("eve_healthcare")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
+)
 
 
 @asynccontextmanager
@@ -71,6 +80,30 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "errors": errors,
         },
     )
+
+
+# ──────────────────────────────────────────────
+# Observability Middleware (X-Request-ID & Timing)
+# ──────────────────────────────────────────────
+
+@app.middleware("http")
+async def request_id_and_logging_middleware(request: Request, call_next):
+    """Inject or propagate X-Request-ID and log request completion latency."""
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+    request.state.request_id = request_id
+    start_time = time.perf_counter()
+
+    response = await call_next(request)
+
+    duration_ms = (time.perf_counter() - start_time) * 1000
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Process-Time-Ms"] = f"{duration_ms:.2f}"
+
+    logger.info(
+        f"req_id={request_id} method={request.method} path={request.url.path} "
+        f"status={response.status_code} latency={duration_ms:.2f}ms"
+    )
+    return response
 
 
 # ──────────────────────────────────────────────
