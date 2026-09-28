@@ -14,7 +14,9 @@ from app.core.dependencies import get_current_user, PaginationParams
 from app.models.user import User
 from app.models.diagnostic import DiagnosticCentre, DiagnosticTest
 from app.models.booking import Booking, BookingStatus
+from app.models.payment import Payment
 from app.schemas.booking import BookingCreate, BookingResponse, BookingCancelRequest
+from app.schemas.payment import PaymentResponse
 from app.schemas.common import PaginatedResponse
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
@@ -116,21 +118,26 @@ async def create_booking(
     summary="List current user's bookings (paginated)",
 )
 async def list_bookings(
+    status: BookingStatus | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     pagination: PaginationParams = Depends(),
 ):
-    """List all bookings for the authenticated user, newest first."""
+    """List all bookings for the authenticated user, newest first. Optionally filter by status."""
+    conditions = [Booking.user_id == current_user.id]
+    if status is not None:
+        conditions.append(Booking.status == status)
+
     count_query = (
         select(func.count())
         .select_from(Booking)
-        .where(Booking.user_id == current_user.id)
+        .where(*conditions)
     )
     total = (await db.execute(count_query)).scalar() or 0
 
     query = (
         select(Booking)
-        .where(Booking.user_id == current_user.id)
+        .where(*conditions)
         .order_by(Booking.created_at.desc())
         .offset(pagination.offset)
         .limit(pagination.page_size)
@@ -177,6 +184,48 @@ async def get_booking(
         )
 
     return _booking_to_response(booking)
+
+
+@router.get(
+    "/{booking_id}/payment",
+    response_model=PaymentResponse,
+    summary="Get payment details for a specific booking",
+    responses={
+        404: {"description": "Booking or payment not found"},
+        403: {"description": "Not your booking"},
+    },
+)
+async def get_booking_payment(
+    booking_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Retrieve payment associated with a booking."""
+    result = await db.execute(select(Booking).where(Booking.id == booking_id))
+    booking = result.scalar_one_or_none()
+
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Booking with id {booking_id} not found.",
+        )
+
+    if booking.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to view this booking.",
+        )
+
+    result = await db.execute(select(Payment).where(Payment.booking_id == booking_id))
+    payment = result.scalar_one_or_none()
+
+    if not payment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No payment found for booking id {booking_id}.",
+        )
+
+    return payment
 
 
 @router.post(

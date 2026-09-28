@@ -103,3 +103,8 @@ class TestDiagnosticTests:
         assert response.status_code == 200
         data = response.json()
         assert data["total"] >= 1
+
+    async def test_list_tests_invalid_centre(self, authenticated_client: AsyncClient):
+        response = await authenticated_client.get("/centres/99999/tests")
+        assert response.status_code == 404
+        assert "not found" in response.json()["detail"].lower()

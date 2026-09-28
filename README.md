@@ -34,8 +34,8 @@ A backend service for diagnostic test bookings with simulated payments, built wi
 | Edge Case Handling | ✅ |
 | Swagger/OpenAPI Documentation | ✅ |
 | Docker & docker-compose | ✅ |
-| Unit & Integration Tests (52 tests) | ✅ |
-| Pagination | ✅ |
+| Unit & Integration Tests (64 tests) | ✅ |
+| Pagination & Status Filtering | ✅ |
 | Row-Level Locking & Concurrency Protection | ✅ |
 | HMAC-SHA256 Webhook Verification | ✅ |
 
@@ -171,14 +171,16 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | `POST` | `/bookings/` | ✅ | Book a diagnostic test |
-| `GET` | `/bookings/` | ✅ | List your bookings (paginated) |
+| `GET` | `/bookings/` | ✅ | List your bookings (paginated, optional `?status=` filter) |
 | `GET` | `/bookings/{id}` | ✅ | Get booking details |
+| `GET` | `/bookings/{id}/payment` | ✅ | Get payment details for a booking |
 | `POST` | `/bookings/{id}/cancel` | ✅ | Cancel a booking |
 
 ### Payments
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | `POST` | `/payments/` | ✅ | Initiate simulated payment |
+| `GET` | `/payments/{id}` | ✅ | Get payment details by ID |
 | `POST` | `/payments/webhook/` | ❌ | Payment provider webhook |
 
 ---
@@ -325,8 +327,10 @@ Tests use an in-memory SQLite database — zero external dependencies needed.
 # Install test dependencies (included in requirements.txt)
 pip install -r requirements.txt
 
-# Run all 52 tests (Unit, Integration, Smoke, and Frontend lint tests)
+# Run all 64 tests (Unit, Integration, Smoke, and Frontend lint tests)
 pytest -v
+# or using Makefile:
+make test-verbose
 
 # Run frontend lint check standalone
 node tests/lint_frontend.js

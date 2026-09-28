@@ -15,9 +15,6 @@ env/
 # Database
 *.db
 
-# Docker
-.dockerignore
-
 # OS
 .DS_Store
 Thumbs.db
@@ -27,3 +24,5 @@ alembic/versions/*.pyc
 
 # Assignment PDF
 EVE_SDE_Intern_Hiring_Assignment.pdf
+
+Makefile

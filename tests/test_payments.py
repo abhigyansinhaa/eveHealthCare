@@ -113,6 +113,96 @@ class TestPayments:
         })
         assert response.status_code == 401
 
+    async def test_get_payment_success(
+        self, authenticated_client: AsyncClient, sample_centre: dict, sample_test: dict, monkeypatch
+    ):
+        """User can retrieve their own payment details by ID."""
+        monkeypatch.setattr("app.api.payments.random.random", lambda: 0.1)
+        booking = await self._create_booking(
+            authenticated_client, sample_centre["id"], sample_test["id"]
+        )
+        pay_res = await authenticated_client.post("/payments/", json={"booking_id": booking["id"]})
+        assert pay_res.status_code == 201
+        payment_id = pay_res.json()["id"]
+
+        get_res = await authenticated_client.get(f"/payments/{payment_id}")
+        assert get_res.status_code == 200
+        data = get_res.json()
+        assert data["id"] == payment_id
+        assert data["booking_id"] == booking["id"]
+        assert data["status"] == "SUCCESS"
+
+    async def test_get_payment_not_found(self, authenticated_client: AsyncClient):
+        response = await authenticated_client.get("/payments/99999")
+        assert response.status_code == 404
+        assert "not found" in response.json()["detail"].lower()
+
+    async def test_get_payment_forbidden_other_user(
+        self, client: AsyncClient, authenticated_client: AsyncClient,
+        sample_centre: dict, sample_test: dict, monkeypatch
+    ):
+        """User B cannot view User A's payment."""
+        monkeypatch.setattr("app.api.payments.random.random", lambda: 0.1)
+        booking = await self._create_booking(
+            authenticated_client, sample_centre["id"], sample_test["id"]
+        )
+        pay_res = await authenticated_client.post("/payments/", json={"booking_id": booking["id"]})
+        payment_id = pay_res.json()["id"]
+
+        # User B registers
+        b_signup = await client.post("/auth/signup", json={
+            "email": "userb@example.com",
+            "full_name": "User B",
+            "password": "Password123",
+        })
+        b_token = b_signup.json()["access_token"]
+
+        response = await client.get(
+            f"/payments/{payment_id}",
+            headers={"Authorization": f"Bearer {b_token}"},
+        )
+        assert response.status_code == 403
+        assert "not authorized" in response.json()["detail"].lower()
+
+    async def test_payment_forbidden_other_users_booking(
+        self, client: AsyncClient, authenticated_client: AsyncClient,
+        sample_centre: dict, sample_test: dict
+    ):
+        """User B cannot pay for User A's booking."""
+        booking = await self._create_booking(
+            authenticated_client, sample_centre["id"], sample_test["id"]
+        )
+
+        b_signup = await client.post("/auth/signup", json={
+            "email": "intruder_pay@example.com",
+            "full_name": "Intruder P",
+            "password": "Password123",
+        })
+        b_token = b_signup.json()["access_token"]
+
+        response = await client.post(
+            "/payments/",
+            json={"booking_id": booking["id"]},
+            headers={"Authorization": f"Bearer {b_token}"},
+        )
+        assert response.status_code == 403
+        assert "not authorized" in response.json()["detail"].lower()
+
+    async def test_payment_cancelled_booking_fails(
+        self, authenticated_client: AsyncClient, sample_centre: dict, sample_test: dict
+    ):
+        """Cannot pay for a booking that has been cancelled."""
+        booking = await self._create_booking(
+            authenticated_client, sample_centre["id"], sample_test["id"]
+        )
+        # Cancel booking
+        await authenticated_client.post(f"/bookings/{booking['id']}/cancel")
+
+        # Attempt payment
+        response = await authenticated_client.post("/payments/", json={"booking_id": booking["id"]})
+        assert response.status_code == 400
+        assert "cannot process payment for a booking with status 'cancelled'" in response.json()["detail"].lower()
+
 
 @pytest.mark.asyncio
 class TestWebhook:
@@ -252,9 +342,10 @@ class TestWebhook:
         assert response.json()["payment_status"] == payment["status"]
 
     async def test_webhook_apply_update_branch(
-        self, authenticated_client: AsyncClient, sample_centre: dict, sample_test: dict
+        self, authenticated_client: AsyncClient, sample_centre: dict, sample_test: dict, monkeypatch
     ):
         """Force a payment to PENDING in the DB and verify webhook reconciles it to SUCCESS/CONFIRMED."""
+        monkeypatch.setattr("app.api.payments.random.random", lambda: 0.1)
         # 1. Create booking and payment
         future_date = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
         booking_resp = await authenticated_client.post("/bookings/", json={
@@ -297,3 +388,47 @@ class TestWebhook:
         booking_check = await authenticated_client.get(f"/bookings/{booking['id']}")
         assert booking_check.status_code == 200
         assert booking_check.json()["status"] == "CONFIRMED"
+
+    async def test_webhook_apply_update_failed_branch(
+        self, authenticated_client: AsyncClient, sample_centre: dict, sample_test: dict, monkeypatch
+    ):
+        """Force a payment to PENDING and verify webhook reconciles it to FAILED."""
+        monkeypatch.setattr("app.api.payments.random.random", lambda: 0.1)
+        future_date = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+        booking_resp = await authenticated_client.post("/bookings/", json={
+            "test_id": sample_test["id"],
+            "centre_id": sample_centre["id"],
+            "appointment_date": future_date,
+        })
+        booking = booking_resp.json()
+        pay_res = await authenticated_client.post("/payments/", json={"booking_id": booking["id"]})
+        assert pay_res.status_code == 201
+        txn_id = pay_res.json()["transaction_id"]
+
+        async with TestSessionLocal() as session:
+            await session.execute(
+                update(Payment).where(Payment.transaction_id == txn_id).values(status=PaymentStatus.PENDING)
+            )
+            await session.execute(
+                update(Booking).where(Booking.id == booking["id"]).values(status=BookingStatus.PENDING)
+            )
+            await session.commit()
+
+        raw_body, headers = sign_webhook_payload({
+            "transaction_id": txn_id,
+            "status": "FAILED",
+        })
+        response = await authenticated_client.post(
+            "/payments/webhook/",
+            content=raw_body,
+            headers=headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["message"] == "Payment status updated successfully."
+        assert data["payment_status"] == "FAILED"
+        assert data["booking_status"] == "FAILED"
+
+        booking_check = await authenticated_client.get(f"/bookings/{booking['id']}")
+        assert booking_check.status_code == 200
+        assert booking_check.json()["status"] == "FAILED"

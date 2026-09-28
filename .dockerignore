@@ -1,0 +1,31 @@
+# Version control
+.git
+.gitignore
+
+# Python virtual environment & caches
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+test.db
+
+# Environment & secrets
+.env
+*.log
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node / JS
+node_modules/
