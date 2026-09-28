@@ -28,7 +28,7 @@ async def signup(payload: UserSignupRequest, db: AsyncSession = Depends(get_db))
     Create a new user account and return a JWT access token.
 
     - **email**: Must be a valid, unique email address.
-    - **full_name**: User's full name (1–255 chars).
+    - **full_name**: User's full name (1 to 255 chars).
     - **password**: Minimum 8 characters.
     """
     # Check for existing user

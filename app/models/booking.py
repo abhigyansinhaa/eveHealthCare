@@ -2,13 +2,21 @@
 Booking model — links a user to a diagnostic test at a centre.
 """
 
+from __future__ import annotations
+
 import enum
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import String, DateTime, ForeignKey, Numeric, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.user import User
+    from app.models.diagnostic import DiagnosticCentre, DiagnosticTest
+    from app.models.payment import Payment
 
 
 class BookingStatus(str, enum.Enum):

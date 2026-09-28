@@ -4,14 +4,20 @@ Payment model — simulated payment linked to a booking.
 Uses a unique transaction_id to enforce idempotency on webhook replays.
 """
 
+from __future__ import annotations
+
 import enum
 import uuid
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import String, DateTime, ForeignKey, Numeric, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.booking import Booking
 
 
 class PaymentStatus(str, enum.Enum):
